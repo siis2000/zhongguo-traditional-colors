@@ -1,0 +1,35 @@
+name: Sync fork from upstream
+
+on:
+  schedule:
+    - cron: '0 0 */5 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fork
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Sync from upstream (nevertoday/zhongguo-traditional-colors)
+        run: |
+          git remote add upstream https://github.com/nevertoday/zhongguo-traditional-colors.git
+          git fetch upstream
+          git merge --no-edit upstream/main || {
+            echo "::warning::Merge conflict, retry favoring upstream changes"
+            git merge --abort
+            git merge -X theirs --no-edit upstream/main
+          }
+          git push origin main
